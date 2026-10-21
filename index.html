@@ -270,7 +270,7 @@ function render(){
  if(view==='inicio'){
   const h=new Date().getHours(),g=h<6?'Buenas noches':h<13?'Buenos días':h<21?'Buenas tardes':'Buenas noches';
   const fav=filtered(S.apps.filter(isFav)),rec=filtered(recents()).slice(0,4);
-  v.innerHTML=`<div class="hello"><h2>${g}.<br>Todo tu mundo, en un solo lugar.</h2><p>${S.apps.length} aplicaciones · ${S.apps.filter(isFav).length} favoritas</p></div>
+  v.innerHTML=`<div class="hello"><h2>${g}.<br>Todo tu mundo, en un solo lugar.</h2><p>${S.apps.length} ${S.apps.length===1?'aplicación':'aplicaciones'} · ${S.apps.filter(isFav).length} ${S.apps.filter(isFav).length===1?'favorita':'favoritas'}</p></div>
   ${fav.length||rec.length||!all.length?`<h3>Favoritas</h3>${grid(fav.slice(0,8),'Marca una aplicación con la estrella para verla aquí.')}<h3>Abiertas recientemente</h3>${grid(rec,'Todavía no has abierto ninguna aplicación.')}`:`<h3>Aplicaciones</h3>${grid(all.slice(0,8),'')}`}`;
  }else if(view==='todas'){v.innerHTML=grid(all,S.apps.length?'Ninguna aplicación coincide con tu búsqueda.':emptyAdd())}
  else if(view==='favoritas'){v.innerHTML=grid(filtered(S.apps.filter(isFav)),'No tienes favoritas. Pulsa la estrella de una aplicación para añadirla.')}
@@ -291,10 +291,14 @@ function render(){
 async function doLogin(){
  const em=$('#em').value.trim(),pw=$('#pw').value;
  if(!em||!pw)return toast('Escribe tu correo y contraseña');
- try{await login(em,pw);const d=await pull();
-  if(d)applyRemote(d);else{if(!S.apps.length)S.apps=[{id:'estudio',name:'Mi espacio de estudio',url:'estudio.html',cat:'Estudio',fav:true}];save()}
-  setSt(mode());applyAccent();render();toast('Sesión iniciada')}
- catch(x){const m=x.message||'';toast(/NOT_ALLOWED/.test(m)?'Activa el acceso con correo en Firebase':/INVALID|NOT_FOUND|PASSWORD|CREDENTIAL/.test(m)?'Correo o contraseña incorrectos':'No pude iniciar sesión')}}
+ try{await login(em,pw)}
+ catch(x){const m=x.message||'';return toast(/NOT_ALLOWED/.test(m)?'Activa el acceso con correo en Firebase':/INVALID|NOT_FOUND|PASSWORD|CREDENTIAL/.test(m)?'Correo o contraseña incorrectos':'No pude iniciar sesión')}
+ let ok=true;
+ try{const d=await pull();
+  if(d)applyRemote(d);else{if(!S.apps.length)S.apps=[{id:'estudio',name:'Mi espacio de estudio',url:'estudio.html',cat:'Estudio',fav:true}];save()}}
+ catch(x){ok=false}
+ setSt(mode());applyAccent();render();
+ toast(ok?'Sesión iniciada':'Sesión iniciada, pero no pude leer la nube. Revisa que Firestore y sus reglas estén publicados')}
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='pw')doLogin()});
 function go(v){view=v;history.replaceState(null,'','#'+v);$('#main').scrollTop=0;render()}
 
